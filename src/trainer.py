@@ -4,6 +4,7 @@ from functools import partial
 from .network import UNetModel,EMA
 from .dataloader import gray_color_data
 from .diffusion import GaussianDiffusion,extract
+import .ops
 
 import torch
 import torch.optim as optim
@@ -77,12 +78,16 @@ class Trainer():
         self.path_train_grey = os.path.join(config.PATH_GREY,'train.npy')
         self.path_validation_color = os.path.join(config.PATH_COLOR,'validation.npy')
         self.path_validation_grey = os.path.join(config.PATH_GREY,'validation.npy')
-        dataset_train = gray_color_data(self.path_train_color,self.path_train_grey)  
-        dataset_validation = gray_color_data(self.path_validation_color,self.path_validation_grey)
+        
+        
         self.batch_size = config.BATCH_SIZE
         self.batch_size_val = config.BATCH_SIZE_VAL
+        # 模型加载
+        dataset_train = gray_color_data(self.path_train_color,self.path_train_grey)  
         self.dataloader_train = DataLoader(dataset_train,batch_size=self.batch_size, shuffle=True)
+        dataset_validation = gray_color_data(self.path_validation_color,self.path_validation_grey)
         self.dataloader_validation = DataLoader(dataset_validation,batch_size=self.batch_size_val,shuffle=False)
+
         self.iteration_max = config.ITERATION_MAX
         self.EMA = EMA(0.9999)
         self.LR = config.LR
@@ -98,6 +103,11 @@ class Trainer():
         self.start_ema = config.START_EMA
         self.save_model_every = config.SAVE_MODEL_EVERY
         self.ema_model = copy.deepcopy(self.network).to(self.device)
+        # 深度图深度上下限
+        self.low_thres = confg.LOW_THRES
+        self.up_thres = confg.UP_THRES
+
+
     def save_model(self,name,EMA=False):
         if not EMA:
             torch.save(self.network.state_dict(),name)
