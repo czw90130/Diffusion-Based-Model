@@ -2,7 +2,7 @@ import os
 from functools import partial
 
 from .network import UNetModel,EMA
-from .dataloader import gray_color_data
+from .dataloader import load_data, gcloth_mask_uv
 from .diffusion import GaussianDiffusion,extract
 import .ops
 
@@ -53,13 +53,19 @@ class Trainer():
     def __init__(self,config):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.diffusion = GaussianDiffusion(config.IMAGE_SIZE,config.CHANNEL_X,config.CHANNEL_Y,config.TIMESTEPS)
-        in_channels = config.CHANNEL_X + config.CHANNEL_Y
-        out_channels = config.CHANNEL_Y
+
+        # 模型加载
+        train_list, valid_list = load_data(config.INDEX_FILE, True)
+        dataset_train = gcloth_mask_uv(train_list, config.IMAGE_SIZE[0], config.LOW_THRES, config.UP_THRES)  
+        self.dataloader_train = DataLoader(dataset_train,batch_size=self.batch_size, shuffle=True)
+        dataset_validation = gcloth_mask_uv(valid_list, config.IMAGE_SIZE[0], config.LOW_THRES, config.UP_THRES) 
+        self.dataloader_validation = DataLoader(dataset_validation,batch_size=self.batch_size_val,shuffle=False)
+
         self.network = UNetModel(
             config.IMAGE_SIZE,
-            in_channels, # channels in the input Tensor, for image colorization : Y_channels + X_channels .
+            dataset_train.IN_CHANNELS, # channels in the input Tensor, for image colorization : Y_channels + X_channels .
             config.MODEL_CHANNELS, # base channel count for the model.
-            out_channels, # channels in the output Tensor.
+            dataset_train.OUT_CHANNELS, # channels in the output Tensor.
             config.NUM_RESBLOCKS, # D
             config.ATTENTION_RESOLUTIONS, # a collection of downsample rates at which attention will take place. May be a set, list, or tuple. For example, if this contains 4, then at 4x downsampling, attention will be used.
             config.DROPOUT, # the dropout probability.
@@ -74,19 +80,10 @@ class Trainer():
             config.RESBLOCK_UPDOWN, # use residual blocks for up/downsampling.
             config.USE_NEW_ATTENTION_ORDER, # use a different attention pattern for potentially increased efficiency.
             ).to(self.device)
-        self.path_train_color = os.path.join(config.PATH_COLOR,'train.npy')
-        self.path_train_grey = os.path.join(config.PATH_GREY,'train.npy')
-        self.path_validation_color = os.path.join(config.PATH_COLOR,'validation.npy')
-        self.path_validation_grey = os.path.join(config.PATH_GREY,'validation.npy')
         
         
         self.batch_size = config.BATCH_SIZE
         self.batch_size_val = config.BATCH_SIZE_VAL
-        # 模型加载
-        dataset_train = gray_color_data(self.path_train_color,self.path_train_grey)  
-        self.dataloader_train = DataLoader(dataset_train,batch_size=self.batch_size, shuffle=True)
-        dataset_validation = gray_color_data(self.path_validation_color,self.path_validation_grey)
-        self.dataloader_validation = DataLoader(dataset_validation,batch_size=self.batch_size_val,shuffle=False)
 
         self.iteration_max = config.ITERATION_MAX
         self.EMA = EMA(0.9999)
@@ -103,10 +100,6 @@ class Trainer():
         self.start_ema = config.START_EMA
         self.save_model_every = config.SAVE_MODEL_EVERY
         self.ema_model = copy.deepcopy(self.network).to(self.device)
-        # 深度图深度上下限
-        self.low_thres = confg.LOW_THRES
-        self.up_thres = confg.UP_THRES
-
 
     def save_model(self,name,EMA=False):
         if not EMA:

@@ -1,7 +1,5 @@
 MODE : 1   # 1 Train, 2 Validation
 IMAGE_SIZE : [424,424]
-CHANNEL_X : 1
-CHANNEL_Y : 3
 TIMESTEPS : 2000
 MODEL_CHANNELS : 128 # base channel count for the model.
 NUM_RESBLOCKS : 4 # D
@@ -17,7 +15,7 @@ NUM_HEAD_UPSAMPLE : -1 # works with num_heads to set a different number of heads
 USE_SCALE_SHIFT_NORM : 'False' # use a FiLM-like conditioning mechanism.
 RESBLOCK_UPDOWN : 'False' # use residual blocks for up/downsampling.
 USE_NEW_ATTENTION_ORDER : 'False' # use a different attention pattern for potentially increased efficiency.
-INDEX_FILE: 'train.csv'
+INDEX_FILE: '/root/autodl-nas/workspace/paper_disrobe/make_disrobe/dataset/train.csv'
 BATCH_SIZE : 1
 BATCH_SIZE_VAL : 8
 ITERATION_MAX : 1000000
@@ -28,4 +26,6 @@ EMA_EVERY : 100
 START_EMA : 2000
 SAVE_MODEL_EVERY : 10000
 LOW_THRES: 27000.0
+UP_THRES: 4500.0
+LOW_THRES: 2700.0
 UP_THRES: 4500.0

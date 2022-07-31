@@ -4,6 +4,7 @@ import os
 import random
 from torchvision.transforms import ToTensor
 from torch.utils.data import Dataset
+from .ops import *
 
 class gray_color_data(Dataset):
     def __init__(self,path_color,path_gray):
@@ -24,8 +25,32 @@ class gray_color_data(Dataset):
         image_color = cv2.cvtColor(image_color,cv2.COLOR_LAB2RGB)
         return(ToTensor()(image_gray),ToTensor()(image_color))
 
+# Load all image data before training
+def load_data(args, valid=False):
+    global data_size, valid_size
+
+    filename = os.path.join(args.dataset_dir, args.index_file)
+    print("From file: {}".format(filename))
+
+    with open(filename, "r") as f:
+        image_lists = f.readlines()
+        random.shuffle(image_lists)
+        input_path = image_lists[0].split(',')[0]
+        if not os.path.exists(input_path):
+            raise ValueError(
+                'input path in csv not exist: {}'.format(input_path))
+
+    data_size = len(image_lists)
+    # 只输出文件名
+    if valid:  # 输出验证集
+        valid_size = int(data_size / 20)
+        data_size = data_size - valid_size
+        return image_lists[:data_size], image_lists[data_size:]
+    else:
+        return image_lists
+
 class gcloth_mask_uv(Dataset):
-    def __init__(self, csv_path, edge, low_thres, up_thres):
+    def __init__(self, image_lists, edge, low_thres, up_thres):
         super().__init__()
         self.edge = edge
 
@@ -34,15 +59,11 @@ class gcloth_mask_uv(Dataset):
         # fix the averange depth to 1555 mm (for better results)
         self.fix_p = (up_thres-low_thres) / 2 + low_thres
 
-        self.csv_path = csv_path
-        print("From file: {}".format(self.csv_path))
+        self.image_lists = image_lists
 
-        with open(filename, "r") as f:
-            self.image_lists = f.readlines()
-            input_path = image_lists[0].split(',')[0]
-            if not os.path.exists(input_path):
-                raise ValueError(
-                    'input path in csv not exist: {}'.format(input_path))
+        self.IN_CHANNELS = 2
+        self.OUT_CHANNELS = 8
+
     def __len__(self):
         return len(self.image_lists)
 
@@ -166,24 +187,24 @@ class gcloth_mask_uv(Dataset):
         depth_body_back = depth_body_back + tmp1
 
         # low_thres 500.0; up_thres 3000.0
-        o_depth_front = ops.convert_depth_to_m1_1(
-            depth_front, low_thres, up_thres).clamp(-1.0, 1.0)
-        o_depth_back = ops.convert_depth_to_m1_1(
-            depth_back, low_thres, up_thres).clamp(-1.0, 1.0)
+        o_depth_front = convert_depth_to_m1_1(
+            depth_front, self.low_thres, self.up_thres).clamp(-1.0, 1.0)
+        o_depth_back = convert_depth_to_m1_1(
+            depth_back, self.low_thres, self.up_thres).clamp(-1.0, 1.0)
 
-        body_depth_front = ops.convert_depth_to_m1_1(
-            depth_body_front, low_thres, up_thres).clamp(-1.0, 1.0)
-        body_depth_back = ops.convert_depth_to_m1_1(
-            depth_body_back, low_thres, up_thres).clamp(-1.0, 1.0)
+        body_depth_front = convert_depth_to_m1_1(
+            depth_body_front, self.low_thres, self.up_thres).clamp(-1.0, 1.0)
+        body_depth_back = convert_depth_to_m1_1(
+            depth_body_back, self.low_thres, self.up_thres).clamp(-1.0, 1.0)
 
-        x_in = torch.cat((o_depth_front, o_depth_back), dim=1)
+        x_in = torch.stack((o_depth_front, o_depth_back), dim=0)
 
-        real_y = torch.cat((
+        real_y = torch.stack((
                         umap_body_front, vmap_body_front,
                         body_depth_front, depth_cloth_mask_front, 
 
                         umap_body_back, vmap_body_back,
                         body_depth_back, depth_cloth_mask_back,
-                          ), dim=1)
+                          ), dim=0)
 
         return(x_in, real_y)
