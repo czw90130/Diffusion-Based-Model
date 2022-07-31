@@ -16,6 +16,38 @@ import numpy as np
 from tqdm import tqdm
 import copy
 
+# 配置信息 | 默认值 | 备注
+# MODE | 1 | 1 Train, 2 Validation
+# IMAGE_SIZE | [224,224] |
+# CHANNEL_X | 1
+# CHANNEL_Y | 3
+# TIMESTEPS | 2000
+# MODEL_CHANNELS | 128 | base channel count for the model.
+# NUM_RESBLOCKS | 4 | D
+# ATTENTION_RESOLUTIONS | [2,4,8] | a collection of downsample rates at which attention will take place. May be a set, list, or tuple. For example, if this contains 4, then at 4x downsampling, attention will be used.
+# DROPOUT | 0 | the dropout probability.
+# CHANNEL_MULT | [1,2,4,8】 | channel multiplier for each level of the UNet.
+# CONV_RESAMPLE | True | if True, use learned convolutions for upsampling and downsampling.
+# USE_CHECKPOINT | False | use gradient checkpointing to reduce memory usage.
+# USE_FP16 | False | 
+# NUM_HEADS | 1 | the number of attention heads in each attention layer.
+# NUM_HEAD_CHANNELS | 64 | if specified, ignore num_heads and instead use a fixed channel width per attention head.
+# NUM_HEAD_UPSAMPLE | -1 | works with num_heads to set a different number of heads for upsampling. Deprecated.
+# USE_SCALE_SHIFT_NORM | False | use a FiLM-like conditioning mechanism.
+# RESBLOCK_UPDOWN | False | use residual blocks for up/downsampling.
+# USE_NEW_ATTENTION_ORDER | False | use a different attention pattern for potentially increased efficiency.
+# PATH_COLOR
+# PATH_GREY
+# BATCH_SIZE | 1 |
+# BATCH_SIZE_VAL | 8 |
+# ITERATION_MAX | 1000000 |
+# LR | 0.0001 | Adam lr
+# LOSS | 'L2' |
+# VALIDATION_EVERY | 1000 |
+# EMA_EVERY | 100 |
+# START_EMA | 2000 |
+# SAVE_MODEL_EVERY | 10000 | 
+
 class Trainer():
     def __init__(self,config):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -24,22 +56,22 @@ class Trainer():
         out_channels = config.CHANNEL_Y
         self.network = UNetModel(
             config.IMAGE_SIZE,
-            in_channels,
-            config.MODEL_CHANNELS,
-            out_channels,
-            config.NUM_RESBLOCKS,
-            config.ATTENTION_RESOLUTIONS,
-            config.DROPOUT,
-            config.CHANNEL_MULT,
-            config.CONV_RESAMPLE,
-            config.USE_CHECKPOINT,
+            in_channels, # channels in the input Tensor, for image colorization : Y_channels + X_channels .
+            config.MODEL_CHANNELS, # base channel count for the model.
+            out_channels, # channels in the output Tensor.
+            config.NUM_RESBLOCKS, # D
+            config.ATTENTION_RESOLUTIONS, # a collection of downsample rates at which attention will take place. May be a set, list, or tuple. For example, if this contains 4, then at 4x downsampling, attention will be used.
+            config.DROPOUT, # the dropout probability.
+            config.CHANNEL_MULT, # channel multiplier for each level of the UNet.
+            config.CONV_RESAMPLE, # if True, use learned convolutions for upsampling and downsampling.
+            config.USE_CHECKPOINT, # use gradient checkpointing to reduce memory usage.
             config.USE_FP16,
-            config.NUM_HEADS,
-            config.NUM_HEAD_CHANNELS,
-            config.NUM_HEAD_UPSAMPLE,
-            config.USE_SCALE_SHIFT_NORM,
-            config.RESBLOCK_UPDOWN,
-            config.USE_NEW_ATTENTION_ORDER,
+            config.NUM_HEADS, # the number of attention heads in each attention layer.
+            config.NUM_HEAD_CHANNELS, # if specified, ignore num_heads and instead use a fixed channel width per attention head.
+            config.NUM_HEAD_UPSAMPLE, # works with num_heads to set a different number of heads for upsampling. Deprecated.
+            config.USE_SCALE_SHIFT_NORM, # use a FiLM-like conditioning mechanism.
+            config.RESBLOCK_UPDOWN, # use residual blocks for up/downsampling.
+            config.USE_NEW_ATTENTION_ORDER, # use a different attention pattern for potentially increased efficiency.
             ).to(self.device)
         self.path_train_color = os.path.join(config.PATH_COLOR,'train.npy')
         self.path_train_grey = os.path.join(config.PATH_GREY,'train.npy')

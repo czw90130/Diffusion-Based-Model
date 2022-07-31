@@ -1,3 +1,8 @@
+# Palette: Image-to-Image Diffusion Models 注解版
+* 完成注解
+* 优化训练代码
+* 完成推理代码
+---
 # WORK IN PROGRESS ( Not any trained model available yet / Training in progress )
 
 

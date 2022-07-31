@@ -3,20 +3,20 @@ IMAGE_SIZE : [224,224]
 CHANNEL_X : 1
 CHANNEL_Y : 3
 TIMESTEPS : 2000
-MODEL_CHANNELS : 128
-NUM_RESBLOCKS : 4
-ATTENTION_RESOLUTIONS : [2,4,8]
-DROPOUT : 0
-CHANNEL_MULT : [1,2,4,8]
-CONV_RESAMPLE : 'True'
-USE_CHECKPOINT : 'False'
+MODEL_CHANNELS : 128 # base channel count for the model.
+NUM_RESBLOCKS : 4 # D
+ATTENTION_RESOLUTIONS : [2,4,8] # a collection of downsample rates at which attention will take place. May be a set, list, or tuple. For example, if this contains 4, then at 4x downsampling, attention will be used.
+DROPOUT : 0 # the dropout probability.
+CHANNEL_MULT : [1,2,4,8] # channel multiplier for each level of the UNet.
+CONV_RESAMPLE : 'True' # if True, use learned convolutions for upsampling and downsampling.
+USE_CHECKPOINT : 'False' # use gradient checkpointing to reduce memory usage.
 USE_FP16 : 'False'
-NUM_HEADS : 1
-NUM_HEAD_CHANNELS : 64
-NUM_HEAD_UPSAMPLE : -1
-USE_SCALE_SHIFT_NORM : 'False'
-RESBLOCK_UPDOWN : 'False'
-USE_NEW_ATTENTION_ORDER : 'False'
+NUM_HEADS : 1 # the number of attention heads in each attention layer.
+NUM_HEAD_CHANNELS : 64 # if specified, ignore num_heads and instead use a fixed channel width per attention head.
+NUM_HEAD_UPSAMPLE : -1 # works with num_heads to set a different number of heads for upsampling. Deprecated.
+USE_SCALE_SHIFT_NORM : 'False' # use a FiLM-like conditioning mechanism.
+RESBLOCK_UPDOWN : 'False' # use residual blocks for up/downsampling.
+USE_NEW_ATTENTION_ORDER : 'False' # use a different attention pattern for potentially increased efficiency.
 PATH_COLOR : 'color'
 PATH_GREY : 'grayscale'
 BATCH_SIZE : 1
